@@ -47,6 +47,7 @@ func main() {
 		follow := api.Group("/follow")
 		{
 			follow.POST("/user", authMiddleware.ValidateToken(), followHandler.FollowUser)
+			follow.DELETE("/user", authMiddleware.ValidateToken(), followHandler.UnfollowUser)
 		}
 	}
 
