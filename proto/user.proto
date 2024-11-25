@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "useraccount/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service UserService {
+  rpc GetUserInfo (GetUserInfoRequest) returns (UserInfo) {}
+  rpc UpdateOnlineStatus (UpdateOnlineStatusRequest) returns (UpdateOnlineStatusResponse) {}
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse) {}
+}
+
+message GetUserInfoRequest {
+  string user_id = 1;
+}
+
+message UserInfo {
+  string id = 1;
+  string phone = 2;
+  string username = 3;
+  string avatar = 4;
+  string gender = 5;
+  google.protobuf.Timestamp birthday = 6;
+  string city = 7;
+  int32 followers_count = 8;
+  int32 following_count = 9;
+  int32 posts_count = 10;
+  int32 received_gifts_count = 11;
+  google.protobuf.Timestamp last_online_time = 12;
+  bool is_registration_complete = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  bool is_online = 16;
+}
+
+message UpdateOnlineStatusRequest {
+  string user_id = 1;
+  bool is_online = 2;
+}
+
+message UpdateOnlineStatusResponse {
+  bool success = 1;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool is_valid = 1;
+  string user_id = 2;
+  string error = 3;
+} 

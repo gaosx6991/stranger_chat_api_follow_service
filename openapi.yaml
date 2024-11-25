@@ -1,0 +1,137 @@
+openapi: 3.0.0
+info:
+  title: 陌生人聊天App关注服务
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+    description: 生产环境
+  - url: https://staging-api.example.com
+    description: 预发布环境
+  - url: http://localhost:8089
+    description: 本地开发环境
+paths:
+  /api/v1/follow/user:
+    post:
+      summary: 关注用户
+      description: 用户通过此接口关注其他用户
+      operationId: followUser
+      security:
+        - jwtAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetUserId
+              properties:
+                targetUserId:
+                  type: string
+                  format: uuid
+                  description: 目标用户ID，唯一标识被关注的用户
+                  example: "123e4567-e89b-12d3-a456-426614174001"
+                  minLength: 36
+                  maxLength: 36
+      responses:
+        '200':
+          description: 关注成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: 响应状态
+                    example: "success"
+                    enum:
+                      - "success"
+                      - "fail"
+                  message:
+                    type: string
+                    description: 响应消息
+                    example: "关注成功"
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "请求参数错误"
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "服务器内部错误，请稍后再试"
+    delete:
+      summary: 取消关注用户
+      description: 取消当前用户对目标用户的关注
+      operationId: unfollowUser
+      security:
+        - jwtAuth: [ ]
+      parameters:
+        - in: query
+          name: targetUserId
+          schema:
+            type: string
+            format: uuid
+            description: 目标用户ID，唯一标识目标用户的字符串
+            required: true
+            example: "123e4567-e89b-12d3-a456-426614174001"
+            minLength: 36
+            maxLength: 36
+      responses:
+        '200':
+          description: 取消关注成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: 响应状态
+                    example: "success"
+                    enum: [ "success", "fail" ]
+                  message:
+                    type: string
+                    description: 响应消息
+                    example: "取消关注成功"
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "参数缺失或格式错误"
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "服务器内部错误，请稍后再试"
+components:
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      name: Authorization
+      in: header
+      description: 使用JWT进行认证，将JWT凭证放在请求头中

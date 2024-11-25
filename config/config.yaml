@@ -1,0 +1,10 @@
+server:
+  port: 8089
+  
+mongodb:
+  uri: "mongodb://localhost:17017"
+  database: "follow_service"
+  collection: "follows"
+
+user_service:
+  host: "localhost:50051" 
