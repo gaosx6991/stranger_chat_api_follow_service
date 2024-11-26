@@ -56,6 +56,7 @@ func main() {
 			follow.POST("/user", authMiddleware.ValidateToken(), followHandler.FollowUser)
 			follow.DELETE("/user", authMiddleware.ValidateToken(), followHandler.UnfollowUser)
 			follow.GET("/my-follows", authMiddleware.ValidateToken(), followHandler.GetMyFollows)
+			follow.GET("/my-fans", authMiddleware.ValidateToken(), followHandler.GetMyFans)
 		}
 	}
 

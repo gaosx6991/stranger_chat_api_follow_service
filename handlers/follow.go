@@ -290,3 +290,133 @@ func (h *FollowHandler) GetMyFollows(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// GetMyFansRequest 定义获取粉丝列表的请求参数
+type GetMyFansRequest struct {
+	Limit  int `form:"limit,default=10"`
+	Offset int `form:"offset,default=0"`
+}
+
+// FansResponse 定义粉丝列表的响应结构
+type FansResponse struct {
+	Fans       []FanDetail `json:"fans"`
+	TotalCount int64       `json:"totalCount"`
+}
+
+// FanDetail 定义每个粉丝的详细信息
+type FanDetail struct {
+	TargetUser struct {
+		ID       string `json:"id"`
+		Avatar   string `json:"avatar"`
+		Username string `json:"username"`
+	} `json:"targetUser"`
+	LatestPostContent string    `json:"latestPostContent"`
+	Timestamp         time.Time `json:"timestamp"`
+}
+
+// GetMyFans 获取当前用户的粉丝列表
+func (h *FollowHandler) GetMyFans(c *gin.Context) {
+	var req GetMyFansRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "参数缺失或格式错误"})
+		return
+	}
+
+	// 验证参数
+	if req.Limit < 1 {
+		req.Limit = 10
+	}
+	if req.Offset < 0 {
+		req.Offset = 0
+	}
+
+	// 获取当前用户ID
+	userID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "无法获取用户信息"})
+		return
+	}
+
+	// 查询粉丝列表
+	pipeline := []bson.M{
+		{
+			"$match": bson.M{
+				"following_id": userID.(string),
+			},
+		},
+		{
+			"$sort": bson.M{
+				"created_at": -1,
+			},
+		},
+		{
+			"$skip": req.Offset,
+		},
+		{
+			"$limit": req.Limit,
+		},
+	}
+
+	cursor, err := h.collection.Aggregate(c.Request.Context(), pipeline)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误，请稍后再试"})
+		return
+	}
+	defer cursor.Close(c.Request.Context())
+
+	var follows []models.Follow
+	if err := cursor.All(c.Request.Context(), &follows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误，请稍后再试"})
+		return
+	}
+
+	// 获取总数
+	totalCount, err := h.collection.CountDocuments(c.Request.Context(), bson.M{
+		"following_id": userID.(string),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误，请稍后再试"})
+		return
+	}
+
+	// 构建响应数据
+	response := FansResponse{
+		Fans:       make([]FanDetail, 0, len(follows)),
+		TotalCount: totalCount,
+	}
+
+	// 获取每个粉丝的详细信息
+	for _, follow := range follows {
+		// 获取用户信息
+		userInfo, err := h.userServiceClient.GetUserInfo(c.Request.Context(), &proto.GetUserInfoRequest{
+			UserId: follow.FollowerID,
+		})
+		if err != nil {
+			continue // 跳过获取失败的用户
+		}
+
+		// 获取用户最新帖子
+		posts, err := h.postServiceClient.GetUserPosts(c.Request.Context(), &proto.GetUserPostsRequest{
+			UserId: follow.FollowerID,
+			Limit:  1,
+			Offset: 0,
+		})
+
+		var latestPostContent string
+		if err == nil && len(posts.Posts) > 0 {
+			latestPostContent = posts.Posts[0].Content
+		}
+
+		detail := FanDetail{
+			LatestPostContent: latestPostContent,
+			Timestamp:         follow.CreatedAt,
+		}
+		detail.TargetUser.ID = userInfo.Id
+		detail.TargetUser.Avatar = userInfo.Avatar
+		detail.TargetUser.Username = userInfo.Username
+
+		response.Fans = append(response.Fans, detail)
+	}
+
+	c.JSON(http.StatusOK, response)
+}
