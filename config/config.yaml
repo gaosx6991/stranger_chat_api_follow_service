@@ -11,3 +11,6 @@ user_service:
 
 post_service:
   host: "localhost:50053"
+
+grpc_server:
+  port: 50056

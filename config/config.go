@@ -5,7 +5,10 @@ import (
 )
 
 type Config struct {
-	Server      ServerConfig  `mapstructure:"server"`
+	Server ServerConfig `mapstructure:"server"`
+
+	GrpcServer ServerConfig `mapstructure:"grpc_server"`
+
 	MongoDB     MongoDBConfig `mapstructure:"mongodb"`
 	UserService ServiceConfig `mapstructure:"user_service"`
 	PostService ServiceConfig `mapstructure:"post_service"`

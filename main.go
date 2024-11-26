@@ -7,10 +7,14 @@ import (
 	"followservice/handlers"
 	"followservice/middleware"
 	"log"
+	"net"
+
+	"followservice/proto"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -61,9 +65,26 @@ func main() {
 		}
 	}
 
-	// 启动服务器
-	addr := fmt.Sprintf(":%d", cfg.Server.Port)
-	if err := r.Run(addr); err != nil {
-		log.Fatalf("服务器启动失败: %v", err)
+	// 创建gRPC服务器
+	grpcServer := grpc.NewServer()
+	followGrpcServer := handlers.NewFollowGrpcServer(collection)
+	proto.RegisterFollowServiceServer(grpcServer, followGrpcServer)
+
+	// 启动HTTP服务器
+	go func() {
+		addr := fmt.Sprintf(":%d", cfg.Server.Port)
+		if err := r.Run(addr); err != nil {
+			log.Fatalf("HTTP服务器启动失败: %v", err)
+		}
+	}()
+
+	// 启动gRPC服务器
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GrpcServer.Port))
+	if err != nil {
+		log.Fatalf("无法监听端口: %v", err)
+	}
+	log.Printf("gRPC服务器正在监听端口 %d", cfg.GrpcServer.Port)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("gRPC服务器启动失败: %v", err)
 	}
 }

@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "followservice/proto";
+
+service FollowService {
+  rpc GetFollowCount (GetFollowCountRequest) returns (GetFollowCountResponse) {}
+}
+
+message GetFollowCountRequest {
+  string user_id = 1;
+}
+
+message GetFollowCountResponse {
+  int64 followers_count = 1;  // 粉丝数量
+  int64 following_count = 2;  // 关注数量
+} 
