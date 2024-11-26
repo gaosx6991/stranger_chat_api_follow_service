@@ -312,6 +312,99 @@ paths:
                   error:
                     type: string
                     example: "服务器内部错误，请稍后再试"
+  /api/v1/follow/mutual:
+    get:
+      summary: 获取互相关注列表
+      description: 获取当前登录用户的互相关注列表
+      security:
+        - jwtAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            description: 返回的互相关注数量限制
+            example: 10
+            default: 10
+          required: false
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            description: 偏移量，用于分页
+            example: 0
+            default: 0
+          required: false
+      responses:
+        '200':
+          description: 成功获取互相关注列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mutualFollows:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        targetUser:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              format: uuid
+                              description: 互相关注的用户ID
+                              example: "123e4567-e89b-12d3-a456-426614174000"
+                            avatar:
+                              type: string
+                              format: uri
+                              description: 互相关注的头像URL
+                              example: "https://example.com/avatars/user123.jpg"
+                            username:
+                              type: string
+                              minLength: 1
+                              maxLength: 30
+                              description: 互相关注的用户名（若未设置则显示手机号后四位）
+                              example: "john_doe"
+                        latestPostContent:
+                          type: string
+                          format: string
+                          description: 互相关注的用户最新发表的帖子的文字内容
+                          example: "这是一个新的帖子内容"
+                          minLength: 1
+                          maxLength: 200
+                        timestamp:
+                          type: string
+                          format: date-time
+                          example: '2023-10-01T12:00:00Z'
+                          description: 互相关注的时间戳
+                  totalCount:
+                    type: integer
+                    description: 总互相关注数
+                    example: 100
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "参数缺失或格式错误"
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "服务器内部错误，请稍后再试"
 components:
   securitySchemes:
     jwtAuth:

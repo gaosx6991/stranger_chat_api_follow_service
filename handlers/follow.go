@@ -420,3 +420,190 @@ func (h *FollowHandler) GetMyFans(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// GetMutualFollowsRequest 定义获取互相关注列表的请求参数
+type GetMutualFollowsRequest struct {
+	Limit  int `form:"limit,default=10"`
+	Offset int `form:"offset,default=0"`
+}
+
+// MutualFollowResponse 定义互相关注列表的响应结构
+type MutualFollowResponse struct {
+	MutualFollows []MutualFollowDetail `json:"mutualFollows"`
+	TotalCount    int64                `json:"totalCount"`
+}
+
+// MutualFollowDetail 定义每个互相关注用户的详细信息
+type MutualFollowDetail struct {
+	TargetUser struct {
+		ID       string `json:"id"`
+		Avatar   string `json:"avatar"`
+		Username string `json:"username"`
+	} `json:"targetUser"`
+	LatestPostContent string    `json:"latestPostContent"`
+	Timestamp         time.Time `json:"timestamp"`
+}
+
+// GetMutualFollows 获取当前用户的互相关注列表
+func (h *FollowHandler) GetMutualFollows(c *gin.Context) {
+	var req GetMutualFollowsRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "参数缺失或格式错误"})
+		return
+	}
+
+	// 验证参数
+	if req.Limit < 1 {
+		req.Limit = 10
+	}
+	if req.Offset < 0 {
+		req.Offset = 0
+	}
+
+	// 获取当前用户ID
+	userID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "无法获取用户信息"})
+		return
+	}
+
+	// 使用聚合管道查询互相关注的用户
+	pipeline := []bson.M{
+		{
+			"$match": bson.M{
+				"follower_id": userID.(string),
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "follows", // 假设集合名为 follows
+				"localField":   "following_id",
+				"foreignField": "follower_id",
+				"as":           "mutual",
+			},
+		},
+		{
+			"$match": bson.M{
+				"mutual": bson.M{
+					"$elemMatch": bson.M{
+						"following_id": userID.(string),
+					},
+				},
+			},
+		},
+		{
+			"$sort": bson.M{
+				"created_at": -1,
+			},
+		},
+		{
+			"$skip": req.Offset,
+		},
+		{
+			"$limit": req.Limit,
+		},
+	}
+
+	cursor, err := h.collection.Aggregate(c.Request.Context(), pipeline)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误，请稍后再试"})
+		return
+	}
+	defer cursor.Close(c.Request.Context())
+
+	var follows []models.Follow
+	if err := cursor.All(c.Request.Context(), &follows); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误，请稍后再试"})
+		return
+	}
+
+	// 获取互相关注总数
+	countPipeline := []bson.M{
+		{
+			"$match": bson.M{
+				"follower_id": userID.(string),
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from":         "follows",
+				"localField":   "following_id",
+				"foreignField": "follower_id",
+				"as":           "mutual",
+			},
+		},
+		{
+			"$match": bson.M{
+				"mutual": bson.M{
+					"$elemMatch": bson.M{
+						"following_id": userID.(string),
+					},
+				},
+			},
+		},
+		{
+			"$count": "total",
+		},
+	}
+
+	var totalResults []struct {
+		Total int64 `bson:"total"`
+	}
+	cursor, err = h.collection.Aggregate(c.Request.Context(), countPipeline)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误，请稍后再试"})
+		return
+	}
+	defer cursor.Close(c.Request.Context())
+
+	if err := cursor.All(c.Request.Context(), &totalResults); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误，请稍后再试"})
+		return
+	}
+
+	var totalCount int64
+	if len(totalResults) > 0 {
+		totalCount = totalResults[0].Total
+	}
+
+	// 构建响应数据
+	response := MutualFollowResponse{
+		MutualFollows: make([]MutualFollowDetail, 0, len(follows)),
+		TotalCount:    totalCount,
+	}
+
+	// 获取每个互相关注用户的详细信息
+	for _, follow := range follows {
+		// 获取用户信息
+		userInfo, err := h.userServiceClient.GetUserInfo(c.Request.Context(), &proto.GetUserInfoRequest{
+			UserId: follow.FollowingID,
+		})
+		if err != nil {
+			continue // 跳过获取失败的用户
+		}
+
+		// 获取用户最新帖子
+		posts, err := h.postServiceClient.GetUserPosts(c.Request.Context(), &proto.GetUserPostsRequest{
+			UserId: follow.FollowingID,
+			Limit:  1,
+			Offset: 0,
+		})
+
+		var latestPostContent string
+		if err == nil && len(posts.Posts) > 0 {
+			latestPostContent = posts.Posts[0].Content
+		}
+
+		detail := MutualFollowDetail{
+			LatestPostContent: latestPostContent,
+			Timestamp:         follow.CreatedAt,
+		}
+		detail.TargetUser.ID = userInfo.Id
+		detail.TargetUser.Avatar = userInfo.Avatar
+		detail.TargetUser.Username = userInfo.Username
+
+		response.MutualFollows = append(response.MutualFollows, detail)
+	}
+
+	c.JSON(http.StatusOK, response)
+}
