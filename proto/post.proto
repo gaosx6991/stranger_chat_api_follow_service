@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "postservice/proto";
+
+import "google/protobuf/timestamp.proto";
+
+service PostService {
+  rpc GetUserPosts (GetUserPostsRequest) returns (GetUserPostsResponse) {}
+  rpc SearchPosts (SearchPostsRequest) returns (SearchPostsResponse) {}
+  rpc GetHotPosts (GetHotPostsRequest) returns (GetHotPostsResponse) {}
+  rpc GetPostDetail(GetPostDetailRequest) returns (GetPostDetailResponse) {}
+}
+
+message GetUserPostsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string current_user_id = 4;
+}
+
+message Post {
+  string id = 1;
+  string content = 2;
+  repeated string images = 3;
+  Author author = 4;
+  string city = 5;
+  string visibility = 6;
+  int32 likes = 7;
+  int32 comments = 8;
+  int32 shares = 9;
+  google.protobuf.Timestamp created_at = 10;
+  bool is_liked = 11;
+  int32 heat_index = 12;
+}
+
+message Author {
+  string id = 1;
+  string username = 2;
+  string avatar = 3;
+}
+
+message GetUserPostsResponse {
+  repeated Post posts = 1;
+  int64 total_count = 2;
+}
+
+message SearchPostsRequest {
+  string keyword = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string current_user_id = 4;
+}
+
+message SearchPostsResponse {
+  repeated Post posts = 1;
+  int64 total_count = 2;
+}
+
+message GetHotPostsRequest {
+  string current_user_id = 1;
+}
+
+message GetHotPostsResponse {
+  repeated Post posts = 1;
+}
+
+message GetPostDetailRequest {
+  string post_id = 1;
+  string current_user_id = 2;
+}
+
+message GetPostDetailResponse {
+  string id = 1;
+  string content = 2;
+  repeated string images = 3;
+  Author author = 4;
+  string city = 5;
+  string timestamp = 6;
+  string visibility = 7;
+  int32 likes = 8;
+  int32 comments = 9;
+  int32 shares = 10;
+  bool is_liked = 11;
+} 

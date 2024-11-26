@@ -8,3 +8,6 @@ mongodb:
 
 user_service:
   host: "localhost:50051" 
+
+post_service:
+  host: "localhost:50053"

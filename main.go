@@ -36,7 +36,14 @@ func main() {
 	}
 
 	// 创建处理器
-	followHandler := handlers.NewFollowHandler(collection)
+	followHandler, err := handlers.NewFollowHandler(
+		collection,
+		cfg.UserService.Host,
+		cfg.PostService.Host,
+	)
+	if err != nil {
+		log.Fatalf("无法创建处理器: %v", err)
+	}
 
 	// 设置路由
 	r := gin.Default()
@@ -48,6 +55,7 @@ func main() {
 		{
 			follow.POST("/user", authMiddleware.ValidateToken(), followHandler.FollowUser)
 			follow.DELETE("/user", authMiddleware.ValidateToken(), followHandler.UnfollowUser)
+			follow.GET("/my-follows", authMiddleware.ValidateToken(), followHandler.GetMyFollows)
 		}
 	}
 

@@ -5,9 +5,10 @@ import (
 )
 
 type Config struct {
-	Server      ServerConfig      `mapstructure:"server"`
-	MongoDB     MongoDBConfig     `mapstructure:"mongodb"`
-	UserService UserServiceConfig `mapstructure:"user_service"`
+	Server      ServerConfig  `mapstructure:"server"`
+	MongoDB     MongoDBConfig `mapstructure:"mongodb"`
+	UserService ServiceConfig `mapstructure:"user_service"`
+	PostService ServiceConfig `mapstructure:"post_service"`
 }
 
 type ServerConfig struct {
@@ -20,7 +21,7 @@ type MongoDBConfig struct {
 	Collection string `mapstructure:"collection"`
 }
 
-type UserServiceConfig struct {
+type ServiceConfig struct {
 	Host string `mapstructure:"host"`
 }
 
