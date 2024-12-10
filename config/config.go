@@ -22,6 +22,7 @@ type MongoDBConfig struct {
 	URI        string `mapstructure:"uri"`
 	Database   string `mapstructure:"database"`
 	Collection string `mapstructure:"collection"`
+	ReplicaSet string `mapstructure:"replica_set"`
 }
 
 type ServiceConfig struct {

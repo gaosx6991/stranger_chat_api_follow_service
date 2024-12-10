@@ -2,9 +2,10 @@ server:
   port: 8089
   
 mongodb:
-  uri: "mongodb://localhost:17017"
+  uri: "mongodb://192.168.1.177:37017,192.168.1.177:37018,192.168.1.177:37019"
   database: "follow_service"
   collection: "follows"
+  replica_set: "rs0"
 
 user_service:
   host: "localhost:50051" 

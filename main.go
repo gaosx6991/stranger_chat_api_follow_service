@@ -6,8 +6,11 @@ import (
 	"followservice/config"
 	"followservice/handlers"
 	"followservice/middleware"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"log"
 	"net"
+	"time"
 
 	"followservice/proto"
 
@@ -25,7 +28,17 @@ func main() {
 	}
 
 	// 连接MongoDB
-	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.MongoDB.URI))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	// 配置MongoDB客户端选项
+	clientOptions := options.Client().
+		ApplyURI(cfg.MongoDB.URI).
+		SetReplicaSet(cfg.MongoDB.ReplicaSet).
+		SetRetryWrites(true).
+		SetRetryReads(true).
+		SetWriteConcern(writeconcern.Majority()).
+		SetReadPreference(readpref.Primary())
+	mongoClient, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		log.Fatalf("无法连接MongoDB: %v", err)
 	}
