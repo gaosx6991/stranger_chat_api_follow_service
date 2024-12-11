@@ -6,6 +6,7 @@ option go_package = "followservice/proto";
 
 service FollowService {
   rpc GetFollowCount (GetFollowCountRequest) returns (GetFollowCountResponse) {}
+  rpc GetFollowingUserIds (GetFollowingUserIdsRequest) returns (GetFollowingUserIdsResponse) {}
 }
 
 message GetFollowCountRequest {
@@ -15,4 +16,12 @@ message GetFollowCountRequest {
 message GetFollowCountResponse {
   int64 followers_count = 1;  // 粉丝数量
   int64 following_count = 2;  // 关注数量
+}
+
+message GetFollowingUserIdsRequest {
+  string user_id = 1;
+}
+
+message GetFollowingUserIdsResponse {
+  repeated string following_user_ids = 1;
 } 
